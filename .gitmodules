@@ -1,0 +1,6 @@
+[submodule "matrix"]
+	path = matrix
+	url = git@github.com:/mirrorscotty/matrix.git
+[submodule "material-data"]
+	path = material-data
+	url = git@github.com:/mirrorscotty/material-data.git
