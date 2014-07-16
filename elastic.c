@@ -84,10 +84,10 @@ int main(int argc, char *argv[])
 
     oswin *d; /* Isotherm data */
 
-    int npts = 50,
+    int npts = 51,
         i;
     
-    vector *z, *Xdb, *Eb, *Es, *GradEb, *GradEs, *str, *strpc, *u;
+    vector *z, *Xdb, *Eb, *Es, *GradEb, *GradEs, *str, *strpc, *u, *upc;
     matrix *output;
 
     if(argc != 3) {
@@ -113,12 +113,13 @@ int main(int argc, char *argv[])
     str = CreateVector(npts);
     strpc = CreateVector(npts);
     u = CreateVector(npts);
+    upc = CreateVector(npts);
 
 //    CrankEquationFx(L/2, t, L, D, Xe, X0, NTERMS);
     printf("Xe = %g\n", Xe);
     
     for(i=0; i<npts; i++)
-        setvalV(z, i, L/npts * i);
+        setvalV(z, i, L/(npts-1) * i);
 
     for(i=0; i<npts; i++) {
         setvalV(Xdb, i, CrankEquationFx(valV(z, i), t, L, D, Xe, X0, NTERMS));
@@ -131,10 +132,13 @@ int main(int argc, char *argv[])
         setvalV(str, i, strain(t, valV(z, i), RH, D, X0, Xe, L, T));
         setvalV(strpc, i, strainpc(t, valV(z, i), RH, D, X0, Xe, L, T));
     }
-    for(i=0;i<npts;i++)
+    for(i=0;i<npts;i++) {
         setvalV(u, i, displacement(i, str, L));
+        setvalV(upc, i, displacement(i, strpc, L));
+    }
 
-    output = CatColVector(6, z, Xdb, GradEb, str, strpc, u);
+
+    output = CatColVector(5, z, Xdb, GradEb, strpc, upc);
     mtxprntfile(output, "out.csv");
 
     return 0;
