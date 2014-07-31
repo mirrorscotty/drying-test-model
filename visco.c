@@ -85,36 +85,55 @@ double strain(double t, double x, double RH, double D, double X0, double Xe, dou
     return e;
 }
 
-
+/**
+ * Calculate the strain assuming that capillary pressure is the driving
+ * force for shrinkage. Capillary pressure is determined from the Kelvin
+ * equation, and the water activity is determined from the Oswin isotherm
+ * model. The creep compliance function is from Gina's thesis, and has been
+ * fitted to take into account the nonlinear variation with applied stress.
+ *
+ * @param t Simulation time [s]
+ * @param x Length coordinate [m]
+ * @param RH Relative humidity of the surrounding air. [-]
+ * @param X0 Initial moisture content of the sample [kg/kg db]
+ * @param Xe Equilibrium moisture content of the sample based on the supplied
+ *      relative humidity
+ * @param L Sample thickness [m]
+ * @param T Drying temperature [K]
+ *
+ * @returns Infintesimal strain [-]
+ */
 double strainpc(double t, double x, double RH, double D, double X0, double Xe, double L, double T)
 {
     int i,
-        nt = 100;
-    double Xdbmh, Xdbph, Xdb,
-           Pcmh, Pcph, Pc,
+        nt = 100; /* Number of time steps to use */
+    double Xdb, 
+           Pc,
            e = 0,
-           dt = t/nt,
-           h = 1e-5;
-    //maxwell *m;
-    burgers *b;
+           dt = t/nt; /* Size of each time step */
+    burgerse *b;
 
-    //m = CreateMaxwell();
-    b = CreateBurgers1();
+    b = CreateBurgersE();
     for(i=0; i<nt; i++) {
+        /* Calculate moisture content using the Crank equation */
         Xdb = CrankEquationFx(x, i*dt, L, D, Xe, X0, NTERMS);
+        //Pc = pore_press(Xdb, T) - pore_press(.3, T);
+        /* Pore pressure */
         Pc = pore_press(Xdb, T);
-        e += DBurgersCreep(b, t-i*dt, T, Xdb) * .01*(Pc-pore_press(0.3,T)) * dt;
-        //Xdbmh = CrankEquationFx(x, i*dt-h, L, D, Xe, X0, NTERMS);
-        //Xdbph = CrankEquationFx(x, i*dt+h, L, D, Xe, X0, NTERMS);
-        //Pcmh = pore_press(Xdbmh, T);
-        //Pcph = pore_press(Xdbph, T);
-
-        //e += MaxwellCreep(m, t-i*dt, T, (Xdbmh+Xdbph)/2) * (Pcph-Pcmh)/(2*h)*dt;
-        //e += BurgersCreep(b, t-i*dt, T, (Xdbmh+Xdbph)/2) * (Pcph-Pcmh)/(2*h)*dt;
+        /* Use a modified integral formula to calculate strain. This has been
+         * integrated by parts to eliminate the numerical error associated with
+         * approximating the pressure time derivative. */
+        e += DBurgersECreep(b, t-i*dt, T, Xdb, -1*Pc) * Pc  * dt;
     }
 
-    e += BurgersCreep(b, 0, T, Xdb)*.01*(Pc-pore_press(.3,T));
-    return e;
+    //Pc = pore_press(Xdb, T) - pore_press(.3, T);
+    Pc = pore_press(Xdb, T);
+    /* The other part of the integration formula */
+    e += BurgersECreep(b, 0, T, Xdb, -1*Pc)*Pc;
+
+    /* Multiply strain (or, more accurately, stress) by porosity to get
+     * effective stress (hopefully) */
+    return e*.06;
 }
 
 /**
