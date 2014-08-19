@@ -1,0 +1,116 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include "matrix.h"
+#include "pasta.h"
+#include "visco.h"
+#include "drying.h"
+
+#define NX 20
+#define NTERMS 40
+
+double SurfDisplace(double t, double RH, double D, double X0, double Xe, double L, double T)
+{
+    int nx = NX;
+    double dx = L/nx,
+           d;
+    int i;
+
+    vector *x, *Xdb, *str, *u;
+    x = CreateVector(nx);
+    Xdb = CreateVector(nx);
+    str = CreateVector(nx);
+    u = CreateVector(nx);
+
+    for(i=0; i<nx; i++)
+        setvalV(x, i, dx*i);
+    for(i=0; i<nx; i++)
+        setvalV(str, i, strainpc(t, valV(x,i), RH, D, X0, Xe, L, T));
+    for(i=0; i<nx; i++)
+        setvalV(u, i, displacement(i, str, L));
+    
+    d = valV(u, nx-1);
+    DestroyVector(x);
+    DestroyVector(Xdb);
+    DestroyVector(str);
+    DestroyVector(u);
+
+    return d;
+}
+
+double SurfMoistureFlux(double t, double RH, double D, double X0, double Xe, double L, double T)
+{
+    double J, h = 1e-7, Xdbs, Xdbsmh;
+
+    Xdbs = CrankEquationFx(L, t, L, D, Xe, X0, NTERMS);
+    Xdbsmh = CrankEquationFx(L-h, t, L, D, Xe, X0, NTERMS);
+
+    J = D*(Xdbs-Xdbsmh) / h;
+
+    return J;
+}
+
+int main(int argc, char *argv[])
+{
+    double L = 1e-3, /* Length [m] */
+           D, /* Diffusivity [m^2/s] */
+           X0 = .3, /* Initial moisture content */
+           Xe, /* Equilibrium moisture content */
+           T = 60+273.15, /* Drying temperature */
+           h = 5,
+           t,
+           nt,
+           RH,
+           V,
+           dt;
+
+    oswin *d; /* Isotherm data */
+
+    int i; /* Loop index */
+    
+    vector *Vs, /* Surface Velocity */
+           *Js, /* Moisture flux at the surface */
+           *tv, /* Time vector */
+           *Disp;
+    matrix *out;
+
+    /* Print out a usage statement if needed */
+    if(argc != 4) {
+        puts("Usage:");
+        puts("dry <aw> <t> <nt>");
+        puts("aw: Final water activity to dry to.");
+        puts("t: Length of time to simulate.");
+        puts("nt: Number of time steps to use.");
+        exit(0);
+    }
+
+    /* Store command line arguments */
+    RH = atof(argv[1]);
+    t = atof(argv[2]);
+    nt = atof(argv[3]);
+
+    dt = t/nt;
+
+    /* Calculate equilibrium moisture content and average diffusivity */
+    d = CreateOswinData();
+    Xe = OswinIsotherm(d, RH, T);
+    D = DiffCh10((Xe+X0)/2, T);
+
+    tv = CreateVector(nt);
+    Vs = CreateVector(nt);
+    Js = CreateVector(nt);
+    Disp = CreateVector(nt);
+
+    for(i=0; i<nt; i++) {
+        setvalV(tv, i, dt*i);
+        V = (SurfDisplace(nt*i+h, RH, D, X0, Xe, L, T) - SurfDisplace(nt*i-h, RH, D, X0, Xe, L, T))/(2*h);
+        setvalV(Vs, i, V);
+        setvalV(Js, i, SurfMoistureFlux(i*nt, RH, D, X0, Xe, L, T));
+        setvalV(Disp, i, SurfDisplace(nt*i, RH, D, X0, Xe, L, T));
+    }
+
+    out = CatColVector(4, tv, Disp, Vs, Js);
+    mtxprntfilehdr(out, "out.csv", "Time [s],Surface Velocity [m/s],Surface Mass Flux [kg/m^2]\n");
+
+    return 0;
+}
+

@@ -1,9 +1,9 @@
 CC=gcc
 CFLAGS=-Imatrix -Imaterial-data/choi-okos -Imaterial-data/pasta -I. -ggdb -Wall
 LDFLAGS=-lm
-VPATH=matrix material-data material-data/pasta 
+VPATH=matrix material-data material-data/pasta viscoelastic
 
-all: visco elastic 
+all: visco-flux visco-profile elastic 
 
 # Make stuff from other projects using their makefile
 matrix.a:
@@ -15,12 +15,18 @@ material-data.a: matrix.a
 	$(MAKE) -C material-data material-data.a
 	cp material-data/material-data.a .
 
-crank.o: drying.h
 visco.o: drying.h
+flux.o:
+profile.o:
+
+crank.o: drying.h
 stress.o: drying.h
 elastic.o: drying.h
 
-visco: visco.o stress.o crank.o matrix.a material-data.a
+visco-flux: flux.o visco.o stress.o crank.o matrix.a material-data.a
+	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
+
+visco-profile: profile.o visco.o stress.o crank.o matrix.a material-data.a
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
 
 elastic: elastic.o stress.o crank.o matrix.a material-data.a
@@ -30,7 +36,7 @@ doc: Doxyfile
 	doxygen Doxyfile
 
 clean:
-	rm -rf *.o *.a visco elastic
+	rm -rf *.o *.a visco-flux visco-profile elastic
 	$(MAKE) -C material-data clean
 	$(MAKE) -C matrix clean
 
