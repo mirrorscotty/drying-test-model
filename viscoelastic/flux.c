@@ -53,10 +53,10 @@ int main(int argc, char *argv[])
 {
     double L = 1e-3, /* Length [m] */
            D, /* Diffusivity [m^2/s] */
-           X0 = .3, /* Initial moisture content */
+           X0, /* Initial moisture content */
            Xe, /* Equilibrium moisture content */
-           T = 60+273.15, /* Drying temperature */
-           h = 5,
+           T, /* Drying temperature */
+           h = 2,
            t,
            nt,
            RH,
@@ -74,19 +74,23 @@ int main(int argc, char *argv[])
     matrix *out;
 
     /* Print out a usage statement if needed */
-    if(argc != 4) {
+    if(argc != 6) {
         puts("Usage:");
-        puts("dry <aw> <t> <nt>");
-        puts("aw: Final water activity to dry to.");
-        puts("t: Length of time to simulate.");
+        puts("dry <T> <X0> <aw> <t> <nt>");
+        puts("T: Drying temperature [C]");
+        puts("X0: Initial moisture content of the pasta. [kg/kg db]");
+        puts("aw: Final water activity to dry to. [-]");
+        puts("t: Length of time to simulate. [s]");
         puts("nt: Number of time steps to use.");
         exit(0);
     }
 
     /* Store command line arguments */
-    RH = atof(argv[1]);
-    t = atof(argv[2]);
-    nt = atof(argv[3]);
+    T = atof(argv[1]) + 273.15;
+    X0 = atof(argv[2]);
+    RH = atof(argv[3]);
+    t = atof(argv[4]);
+    nt = atof(argv[5]);
 
     dt = t/nt;
 
@@ -109,7 +113,8 @@ int main(int argc, char *argv[])
     }
 
     out = CatColVector(4, tv, Disp, Vs, Js);
-    mtxprntfilehdr(out, "out.csv", "Time [s],Surface Velocity [m/s],Surface Mass Flux [kg/m^2]\n");
+
+    mtxprntfilehdr(out, "out.csv", "Time [s],Surface Displacement [m],Surface Velocity [m/s],Surface Mass Flux [kg/m^2]\n");
 
     return 0;
 }
