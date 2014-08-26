@@ -10,6 +10,7 @@
 #define SLABLENGTH 8e-3
 
 double CrankEquationFx(double, double, double, double, double, double, int);
+double CrankEquation(double, double, double, double, int);
 
 double Esurf(double, double);
 

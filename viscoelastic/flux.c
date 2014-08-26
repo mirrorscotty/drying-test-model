@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "matrix.h"
 #include "pasta.h"
 #include "visco.h"
@@ -61,13 +62,15 @@ int main(int argc, char *argv[])
            nt,
            RH,
            V,
-           dt;
+           dt,
+           kf;
 
     oswin *d; /* Isotherm data */
 
     int i; /* Loop index */
     
-    vector *Vs, /* Surface Velocity */
+    vector *Xdb, /* Slab moisture content */
+           *Vs, /* Surface Velocity */
            *Js, /* Moisture flux at the surface */
            *tv, /* Time vector */
            *Disp;
@@ -100,19 +103,26 @@ int main(int argc, char *argv[])
     D = DiffCh10((Xe+X0)/2, T);
 
     tv = CreateVector(nt);
+    Xdb = CreateVector(nt);
     Vs = CreateVector(nt);
     Js = CreateVector(nt);
     Disp = CreateVector(nt);
 
     for(i=0; i<nt; i++) {
         setvalV(tv, i, dt*i);
+
+        kf = M_PI*M_PI*D/(L*L);
+        setvalV(Xdb, i, CrankEquation(kf, i*dt, X0, Xe, NTERMS));
+
         V = (SurfDisplace(nt*i+h, RH, D, X0, Xe, L, T) - SurfDisplace(nt*i-h, RH, D, X0, Xe, L, T))/(2*h);
         setvalV(Vs, i, V);
+
         setvalV(Js, i, SurfMoistureFlux(i*nt, RH, D, X0, Xe, L, T));
+
         setvalV(Disp, i, SurfDisplace(nt*i, RH, D, X0, Xe, L, T));
     }
 
-    out = CatColVector(4, tv, Disp, Vs, Js);
+    out = CatColVector(5, tv, Xdb, Disp, Vs, Js);
 
     mtxprntfilehdr(out, "out.csv", "Time [s],Surface Displacement [m],Surface Velocity [m/s],Surface Mass Flux [kg/m^2]\n");
 
