@@ -25,7 +25,7 @@ double SurfDisplace(double t, double RH, double D, double X0, double Xe, double 
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, strainpc(t, valV(x,i), RH, D, X0, Xe, L, T));
+        setvalV(str, i, MaxwellStrainPc(t, valV(x,i), RH, D, X0, Xe, L, T));
     for(i=0; i<nx; i++)
         setvalV(u, i, displacement(i, str, L));
     
