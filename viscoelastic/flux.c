@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "matrix.h"
-#include "pasta.h"
+#include "material-data.h"
 #include "visco.h"
 #include "drying.h"
 
@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
            *Vs, /* Surface Velocity */
            *Js, /* Moisture flux at the surface */
            *tv, /* Time vector */
+           *VV0,
            *Disp;
     matrix *out;
 
@@ -107,6 +108,7 @@ int main(int argc, char *argv[])
     Vs = CreateVector(nt);
     Js = CreateVector(nt);
     Disp = CreateVector(nt);
+    VV0 = CreateVector(nt);
 
     for(i=0; i<nt; i++) {
         setvalV(tv, i, dt*i);
@@ -120,11 +122,12 @@ int main(int argc, char *argv[])
         setvalV(Js, i, SurfMoistureFlux(i*nt, RH, D, X0, Xe, L, T));
 
         setvalV(Disp, i, SurfDisplace(nt*i, RH, D, X0, Xe, L, T));
+        setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
     }
 
-    out = CatColVector(5, tv, Xdb, Disp, Vs, Js);
+    out = CatColVector(6, tv, Xdb, Disp, Vs, Js, VV0);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Surface Displacement [m],Surface Velocity [m/s],Surface Mass Flux [kg/m^2]\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],Surface Velocity [m/s],Surface Water Flux [kg/m^2],V/V0\n");
 
     return 0;
 }

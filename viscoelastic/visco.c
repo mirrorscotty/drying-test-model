@@ -1,6 +1,8 @@
-#include "pasta.h"
+#include <math.h>
+
 #include "matrix.h"
 #include "drying.h"
+#include "material-data.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -133,7 +135,7 @@ double strainpc(double t, double x, double RH, double D, double X0, double Xe, d
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
-    return e*.06;
+    return 0.06*e;
 }
 
 double MaxwellStrainPc(double t, double x, double RH, double D, double X0, double Xe, double L, double T)
@@ -144,9 +146,7 @@ double MaxwellStrainPc(double t, double x, double RH, double D, double X0, doubl
            Pc,
            e = 0,
            dt = t/nt; /* Size of each time step */
-    maxwell *m;
 
-    m = CreateMaxwell();
     for(i=0; i<nt; i++) {
         /* Calculate moisture content using the Crank equation */
         Xdb = CrankEquationFx(x, i*dt, L, D, Xe, X0, NTERMS);
@@ -155,13 +155,12 @@ double MaxwellStrainPc(double t, double x, double RH, double D, double X0, doubl
         /* Use a modified integral formula to calculate strain. This has been
          * integrated by parts to eliminate the numerical error associated with
          * approximating the pressure time derivative. */
-        e += DMaxwellCreep(m, t-i*dt, T, Xdb) * Pc  * dt;
+        e += DMaxwellCreepConverted(t-i*dt, T, Xdb) * Pc  * dt;
     }
 
-    //Pc = pore_press(Xdb, T) - pore_press(.3, T);
-    Pc = pore_press(Xdb, T);
+        Pc = pore_press(Xdb, T);
     /* The other part of the integration formula */
-    e += MaxwellCreep(m, 0, T, Xdb)*Pc;
+    e += MaxwellCreepConverted(0, T, Xdb)*Pc;
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
