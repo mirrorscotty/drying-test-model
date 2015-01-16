@@ -38,6 +38,35 @@ double SurfDisplace(double t, double RH, double D, double X0, double Xe, double 
     return d;
 }
 
+double SurfDisplaceMax(double t, double RH, double D, double X0, double Xe, double L, double T)
+{
+    int nx = NX;
+    double dx = L/nx,
+           d;
+    int i;
+
+    vector *x, *Xdb, *str, *u;
+    x = CreateVector(nx);
+    Xdb = CreateVector(nx);
+    str = CreateVector(nx);
+    u = CreateVector(nx);
+
+    for(i=0; i<nx; i++)
+        setvalV(x, i, dx*i);
+    for(i=0; i<nx; i++)
+        setvalV(str, i, maxstrain(t, valV(x,i), RH, D, X0, Xe, L, T));
+    for(i=0; i<nx; i++)
+        setvalV(u, i, displacement(i, str, L));
+    
+    d = valV(u, nx-1);
+    DestroyVector(x);
+    DestroyVector(Xdb);
+    DestroyVector(str);
+    DestroyVector(u);
+
+    return d;
+}
+
 double SurfMoistureFlux(double t, double RH, double D, double X0, double Xe, double L, double T)
 {
     double J, h = 1e-7, Xdbs, Xdbsmh;
@@ -74,7 +103,10 @@ int main(int argc, char *argv[])
            *Js, /* Moisture flux at the surface */
            *tv, /* Time vector */
            *VV0,
+           *VV0Max,
+           *MaxDisp,
            *Disp;
+
     matrix *out;
 
     /* Print out a usage statement if needed */
@@ -108,7 +140,9 @@ int main(int argc, char *argv[])
     Vs = CreateVector(nt);
     Js = CreateVector(nt);
     Disp = CreateVector(nt);
+    MaxDisp = CreateVector(nt);
     VV0 = CreateVector(nt);
+    VV0Max = CreateVector(nt);
 
     for(i=0; i<nt; i++) {
         setvalV(tv, i, dt*i);
@@ -122,12 +156,14 @@ int main(int argc, char *argv[])
         setvalV(Js, i, SurfMoistureFlux(i*nt, RH, D, X0, Xe, L, T));
 
         setvalV(Disp, i, SurfDisplace(nt*i, RH, D, X0, Xe, L, T));
+        setvalV(MaxDisp, i, SurfDisplaceMax(nt*i, RH, D, X0, Xe, L, T));
         setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
+        setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
     }
 
-    out = CatColVector(6, tv, Xdb, Disp, Vs, Js, VV0);
+    out = CatColVector(8, tv, Xdb, Disp, MaxDisp, Vs, Js, VV0, VV0Max);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],Surface Velocity [m/s],Surface Water Flux [kg/m^2],V/V0\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],Max Surf Disp [m],Surface Velocity [m/s],Surface Water Flux [kg/m^2],V/V0,V/V0 Max\n");
 
     return 0;
 }
