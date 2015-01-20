@@ -7,7 +7,7 @@
 #include "drying.h"
 
 #define NX 20
-#define NTERMS 40
+#define NTERMS 100
 
 double SurfDisplace(double t, double RH, double D, double X0, double Xe, double L, double T)
 {
@@ -26,9 +26,10 @@ double SurfDisplace(double t, double RH, double D, double X0, double Xe, double 
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
         setvalV(str, i, MaxwellStrainPc(t, valV(x,i), RH, D, X0, Xe, L, T));
+        //setvalV(str, i, strainpc(t, valV(x,i), RH, D, X0, Xe, L, T));
     for(i=0; i<nx; i++)
         setvalV(u, i, displacement(i, str, L));
-    
+
     d = valV(u, nx-1);
     DestroyVector(x);
     DestroyVector(Xdb);
@@ -57,7 +58,36 @@ double SurfDisplaceMax(double t, double RH, double D, double X0, double Xe, doub
         setvalV(str, i, maxstrain(t, valV(x,i), RH, D, X0, Xe, L, T));
     for(i=0; i<nx; i++)
         setvalV(u, i, displacement(i, str, L));
-    
+
+    d = valV(u, nx-1);
+    DestroyVector(x);
+    DestroyVector(Xdb);
+    DestroyVector(str);
+    DestroyVector(u);
+
+    return d;
+}
+
+double SurfDisplaceEq(double t, double RH, double D, double X0, double Xe, double L, double T)
+{
+    int nx = NX;
+    double dx = L/nx,
+           d;
+    int i;
+
+    vector *x, *Xdb, *str, *u;
+    x = CreateVector(nx);
+    Xdb = CreateVector(nx);
+    str = CreateVector(nx);
+    u = CreateVector(nx);
+
+    for(i=0; i<nx; i++)
+        setvalV(x, i, dx*i);
+    for(i=0; i<nx; i++)
+        setvalV(str, i, EqStrainPc(t, valV(x,i), RH, D, X0, Xe, L, T));
+    for(i=0; i<nx; i++)
+        setvalV(u, i, displacement(i, str, L));
+
     d = valV(u, nx-1);
     DestroyVector(x);
     DestroyVector(Xdb);
@@ -99,12 +129,14 @@ int main(int argc, char *argv[])
     int i; /* Loop index */
     
     vector *Xdb, /* Slab moisture content */
-           *Vs, /* Surface Velocity */
+           *Pc,
            *Js, /* Moisture flux at the surface */
            *tv, /* Time vector */
            *VV0,
            *VV0Max,
+           *VV0Eq,
            *MaxDisp,
+           *EqDisp,
            *Disp;
 
     matrix *out;
@@ -137,33 +169,38 @@ int main(int argc, char *argv[])
 
     tv = CreateVector(nt);
     Xdb = CreateVector(nt);
-    Vs = CreateVector(nt);
+    Pc = CreateVector(nt);
     Js = CreateVector(nt);
     Disp = CreateVector(nt);
     MaxDisp = CreateVector(nt);
+    EqDisp = CreateVector(nt);
     VV0 = CreateVector(nt);
     VV0Max = CreateVector(nt);
+    VV0Eq = CreateVector(nt);
 
     for(i=0; i<nt; i++) {
         setvalV(tv, i, dt*i);
 
         kf = M_PI*M_PI*D/(L*L);
+        setvalV(Xdb, i, CrankEquationFx(.9, i*dt, L, D, Xe, X0, NTERMS));
         setvalV(Xdb, i, CrankEquation(kf, i*dt, X0, Xe, NTERMS));
+        //setvalV(Xdb, i, EqStrainPc(i*dt, .9, 0, D, X0, Xe, L, T));
 
-        V = (SurfDisplace(nt*i+h, RH, D, X0, Xe, L, T) - SurfDisplace(nt*i-h, RH, D, X0, Xe, L, T))/(2*h);
-        setvalV(Vs, i, V);
+        setvalV(Pc, i, pore_press(valV(Xdb, i), T));
 
         setvalV(Js, i, SurfMoistureFlux(i*nt, RH, D, X0, Xe, L, T));
 
         setvalV(Disp, i, SurfDisplace(nt*i, RH, D, X0, Xe, L, T));
         setvalV(MaxDisp, i, SurfDisplaceMax(nt*i, RH, D, X0, Xe, L, T));
+        setvalV(EqDisp, i, SurfDisplaceEq(nt*i, RH, D, X0, Xe, L, T));
         setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
         setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
+        setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);
     }
 
-    out = CatColVector(8, tv, Xdb, Disp, MaxDisp, Vs, Js, VV0, VV0Max);
+    out = CatColVector(10, tv, Xdb, Disp, MaxDisp, EqDisp, Pc, Js, VV0, VV0Max, VV0Eq);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],Max Surf Disp [m],Surface Velocity [m/s],Surface Water Flux [kg/m^2],V/V0,V/V0 Max\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
 
     return 0;
 }

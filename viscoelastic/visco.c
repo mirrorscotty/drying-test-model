@@ -9,7 +9,7 @@
 
 /* Number of terms to use for the Crank equation when solving for moisture
  * profile. */
-#define NTERMS 1000
+#define NTERMS 100
 
 /**
  * Calculate the strain assuming that binding energy gradient is the driving
@@ -128,7 +128,7 @@ double strainpc(double t, double x, double RH, double D, double X0, double Xe, d
         e += DBurgersECreep(b, t-i*dt, T, Xdb, -1*Pc) * Pc  * dt;
     }
 
-    //Pc = pore_press(Xdb, T) - pore_press(.3, T);
+    Xdb = CrankEquationFx(x, t, L, D, Xe, X0, NTERMS);
     Pc = pore_press(Xdb, T);
     /* The other part of the integration formula */
     e += BurgersECreep(b, 0, T, Xdb, -1*Pc)*Pc;
@@ -141,7 +141,7 @@ double strainpc(double t, double x, double RH, double D, double X0, double Xe, d
 double MaxwellStrainPc(double t, double x, double RH, double D, double X0, double Xe, double L, double T)
 {
     int i,
-        nt = 100; /* Number of time steps to use */
+        nt = 1000; /* Number of time steps to use */
     double Xdb, 
            Pc,
            e = 0,
@@ -158,9 +158,29 @@ double MaxwellStrainPc(double t, double x, double RH, double D, double X0, doubl
         e += DMaxwellCreepConverted(t-i*dt, T, Xdb) * Pc  * dt;
     }
 
-        Pc = pore_press(Xdb, T);
+    Xdb = CrankEquationFx(x, t, L, D, Xe, X0, NTERMS);
+    Pc = pore_press(Xdb, T);
     /* The other part of the integration formula */
     e += MaxwellCreepConverted(0, T, Xdb)*Pc;
+
+    /* Multiply strain (or, more accurately, stress) by porosity to get
+     * effective stress (hopefully) */
+    return e*.06;
+}
+
+double EqStrainPc(double t, double x, double RH, double D, double X0, double Xe, double L, double T)
+{
+    double Xdb, 
+           Pc,
+           Ea,
+           e = 0;
+
+    /* Calculate moisture content using the Crank equation */
+    Xdb = CrankEquationFx(x, t, L, D, Xe, X0, NTERMS);
+    /* Pore pressure */
+    Pc = pore_press(Xdb, T); 
+    Ea = 68.18*(1/(1+exp((Xdb-250.92*exp(-0.0091*T))/2.19))+0.078) * 1e6;
+    e = Pc/Ea;
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
