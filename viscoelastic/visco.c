@@ -101,6 +101,8 @@ double EqStrainPc(double t, double x, drydat d)
 
     /* Calculate moisture content using the Crank equation */
     Xdb = CrankEquationFx(x, t, d);
+    //if(x>=9.4e-4)
+    //    printf("x = %g, t = %g, Xdb = %g\n", x, t, Xdb);
     /* Pore pressure */
     Pc = pore_press(Xdb, d.T); 
     Ea = 68.18*(1/(1+exp((Xdb-250.92*exp(-0.0091*d.T))/2.19))+0.078) * 1e6;

@@ -16,25 +16,21 @@ double SurfDisplace(double t, drydat cond)
            d;
     int i;
 
-    vector *x, *Xdb, *str, *u;
+    vector *x, *Xdb, *str;
     x = CreateVector(nx);
     Xdb = CreateVector(nx);
     str = CreateVector(nx);
-    u = CreateVector(nx);
 
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, MaxwellStrainPc(t, valV(x,i), cond));
-        //setvalV(str, i, strainpc(t, valV(x,i), cond));
-    for(i=0; i<nx; i++)
-        setvalV(u, i, displacement(i, str, cond.L));
+        //setvalV(str, i, MaxwellStrainPc(t, valV(x,i), cond));
+        setvalV(str, i, strainpc(t, valV(x,i), cond));
 
-    d = valV(u, nx-1);
+    d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
     DestroyVector(Xdb);
     DestroyVector(str);
-    DestroyVector(u);
 
     return d;
 }
@@ -42,28 +38,23 @@ double SurfDisplace(double t, drydat cond)
 double SurfDisplaceMax(double t, drydat cond )
 {
     int nx = NX;
-    double dx = cond.L/nx,
-           d;
+    double dx = cond.L/nx, d;
     int i;
 
-    vector *x, *Xdb, *str, *u;
+    vector *x, *Xdb, *str;
     x = CreateVector(nx);
     Xdb = CreateVector(nx);
     str = CreateVector(nx);
-    u = CreateVector(nx);
 
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
         setvalV(str, i, maxstrain(t, valV(x,i), cond));
-    for(i=0; i<nx; i++)
-        setvalV(u, i, displacement(i, str, cond.L));
 
-    d = valV(u, nx-1);
+    d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
     DestroyVector(Xdb);
     DestroyVector(str);
-    DestroyVector(u);
 
     return d;
 }
@@ -75,24 +66,21 @@ double SurfDisplaceEq(double t, drydat cond)
            d;
     int i;
 
-    vector *x, *Xdb, *str, *u;
+    vector *x, *Xdb, *str;
     x = CreateVector(nx);
     Xdb = CreateVector(nx);
     str = CreateVector(nx);
-    u = CreateVector(nx);
 
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
         setvalV(str, i, EqStrainPc(t, valV(x,i), cond));
-    for(i=0; i<nx; i++)
-        setvalV(u, i, displacement(i, str, cond.L));
 
-    d = valV(u, nx-1);
+    //PrintVector(str);
+    d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
     DestroyVector(Xdb);
     DestroyVector(str);
-    DestroyVector(u);
 
     return d;
 }
@@ -183,11 +171,11 @@ int main(int argc, char *argv[])
 
         setvalV(Pc, i, pore_press(valV(Xdb, i), cond.T));
 
-        setvalV(Js, i, SurfMoistureFlux(i*nt, cond));
+        setvalV(Js, i, SurfMoistureFlux(i*dt, cond));
 
-        setvalV(Disp, i, SurfDisplace(nt*i, cond));
-        setvalV(MaxDisp, i, SurfDisplaceMax(nt*i, cond));
-        setvalV(EqDisp, i, SurfDisplaceEq(nt*i, cond));
+        setvalV(Disp, i, SurfDisplace(dt*i, cond));
+        setvalV(MaxDisp, i, SurfDisplaceMax(dt*i, cond));
+        setvalV(EqDisp, i, SurfDisplaceEq(dt*i, cond));
 
         setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
         setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
