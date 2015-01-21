@@ -9,10 +9,10 @@
 #define NX 20
 #define NTERMS 100
 
-double SurfDisplace(double t, double RH, double D, double X0, double Xe, double L, double T)
+double SurfDisplace(double t, drydat cond)
 {
     int nx = NX;
-    double dx = L/nx,
+    double dx = cond.L/nx,
            d;
     int i;
 
@@ -25,10 +25,10 @@ double SurfDisplace(double t, double RH, double D, double X0, double Xe, double 
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, MaxwellStrainPc(t, valV(x,i), RH, D, X0, Xe, L, T));
-        //setvalV(str, i, strainpc(t, valV(x,i), RH, D, X0, Xe, L, T));
+        setvalV(str, i, MaxwellStrainPc(t, valV(x,i), cond));
+        //setvalV(str, i, strainpc(t, valV(x,i), cond));
     for(i=0; i<nx; i++)
-        setvalV(u, i, displacement(i, str, L));
+        setvalV(u, i, displacement(i, str, cond.L));
 
     d = valV(u, nx-1);
     DestroyVector(x);
@@ -39,10 +39,10 @@ double SurfDisplace(double t, double RH, double D, double X0, double Xe, double 
     return d;
 }
 
-double SurfDisplaceMax(double t, double RH, double D, double X0, double Xe, double L, double T)
+double SurfDisplaceMax(double t, drydat cond )
 {
     int nx = NX;
-    double dx = L/nx,
+    double dx = cond.L/nx,
            d;
     int i;
 
@@ -55,9 +55,9 @@ double SurfDisplaceMax(double t, double RH, double D, double X0, double Xe, doub
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, maxstrain(t, valV(x,i), RH, D, X0, Xe, L, T));
+        setvalV(str, i, maxstrain(t, valV(x,i), cond));
     for(i=0; i<nx; i++)
-        setvalV(u, i, displacement(i, str, L));
+        setvalV(u, i, displacement(i, str, cond.L));
 
     d = valV(u, nx-1);
     DestroyVector(x);
@@ -68,10 +68,10 @@ double SurfDisplaceMax(double t, double RH, double D, double X0, double Xe, doub
     return d;
 }
 
-double SurfDisplaceEq(double t, double RH, double D, double X0, double Xe, double L, double T)
+double SurfDisplaceEq(double t, drydat cond)
 {
     int nx = NX;
-    double dx = L/nx,
+    double dx = cond.L/nx,
            d;
     int i;
 
@@ -84,9 +84,9 @@ double SurfDisplaceEq(double t, double RH, double D, double X0, double Xe, doubl
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, EqStrainPc(t, valV(x,i), RH, D, X0, Xe, L, T));
+        setvalV(str, i, EqStrainPc(t, valV(x,i), cond));
     for(i=0; i<nx; i++)
-        setvalV(u, i, displacement(i, str, L));
+        setvalV(u, i, displacement(i, str, cond.L));
 
     d = valV(u, nx-1);
     DestroyVector(x);
@@ -97,14 +97,14 @@ double SurfDisplaceEq(double t, double RH, double D, double X0, double Xe, doubl
     return d;
 }
 
-double SurfMoistureFlux(double t, double RH, double D, double X0, double Xe, double L, double T)
+double SurfMoistureFlux(double t, drydat cond)
 {
     double J, h = 1e-7, Xdbs, Xdbsmh;
 
-    Xdbs = CrankEquationFx(L, t, L, D, Xe, X0, NTERMS);
-    Xdbsmh = CrankEquationFx(L-h, t, L, D, Xe, X0, NTERMS);
+    Xdbs = CrankEquationFx(cond.L, t, cond);
+    Xdbsmh = CrankEquationFx(cond.L-h, t, cond);
 
-    J = D*(Xdbs-Xdbsmh) / h;
+    J = cond.D*(Xdbs-Xdbsmh) / h;
 
     return J;
 }
@@ -112,18 +112,12 @@ double SurfMoistureFlux(double t, double RH, double D, double X0, double Xe, dou
 int main(int argc, char *argv[])
 {
     double L = 1e-3, /* Length [m] */
-           D, /* Diffusivity [m^2/s] */
-           X0, /* Initial moisture content */
-           Xe, /* Equilibrium moisture content */
-           T, /* Drying temperature */
-           h = 2,
            t,
            nt,
            RH,
-           V,
-           dt,
-           kf;
+           dt;
 
+    drydat cond;
     oswin *d; /* Isotherm data */
 
     int i; /* Loop index */
@@ -154,8 +148,8 @@ int main(int argc, char *argv[])
     }
 
     /* Store command line arguments */
-    T = atof(argv[1]) + 273.15;
-    X0 = atof(argv[2]);
+    cond.T = atof(argv[1]) + 273.15;
+    cond.X0 = atof(argv[2]);
     RH = atof(argv[3]);
     t = atof(argv[4]);
     nt = atof(argv[5]);
@@ -164,8 +158,10 @@ int main(int argc, char *argv[])
 
     /* Calculate equilibrium moisture content and average diffusivity */
     d = CreateOswinData();
-    Xe = OswinIsotherm(d, RH, T);
-    D = DiffCh10((Xe+X0)/2, T);
+    cond.Xe = OswinIsotherm(d, RH, cond.T);
+    cond.D = DiffCh10((cond.Xe+cond.X0)/2, cond.T);
+    cond.L = L;
+    cond.nterms = NTERMS;
 
     tv = CreateVector(nt);
     Xdb = CreateVector(nt);
@@ -181,18 +177,18 @@ int main(int argc, char *argv[])
     for(i=0; i<nt; i++) {
         setvalV(tv, i, dt*i);
 
-        kf = M_PI*M_PI*D/(L*L);
-        setvalV(Xdb, i, CrankEquationFx(.9, i*dt, L, D, Xe, X0, NTERMS));
-        setvalV(Xdb, i, CrankEquation(kf, i*dt, X0, Xe, NTERMS));
+        //setvalV(Xdb, i, CrankEquationFx(.9, i*dt, L, D, Xe, X0, NTERMS));
+        setvalV(Xdb, i, CrankEquation(i*dt, cond));
         //setvalV(Xdb, i, EqStrainPc(i*dt, .9, 0, D, X0, Xe, L, T));
 
-        setvalV(Pc, i, pore_press(valV(Xdb, i), T));
+        setvalV(Pc, i, pore_press(valV(Xdb, i), cond.T));
 
-        setvalV(Js, i, SurfMoistureFlux(i*nt, RH, D, X0, Xe, L, T));
+        setvalV(Js, i, SurfMoistureFlux(i*nt, cond));
 
-        setvalV(Disp, i, SurfDisplace(nt*i, RH, D, X0, Xe, L, T));
-        setvalV(MaxDisp, i, SurfDisplaceMax(nt*i, RH, D, X0, Xe, L, T));
-        setvalV(EqDisp, i, SurfDisplaceEq(nt*i, RH, D, X0, Xe, L, T));
+        setvalV(Disp, i, SurfDisplace(nt*i, cond));
+        setvalV(MaxDisp, i, SurfDisplaceMax(nt*i, cond));
+        setvalV(EqDisp, i, SurfDisplaceEq(nt*i, cond));
+
         setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
         setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
         setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);

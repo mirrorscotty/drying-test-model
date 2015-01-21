@@ -9,8 +9,18 @@
 #define SLABWIDTH 6e-3
 #define SLABLENGTH 8e-3
 
-double CrankEquationFx(double, double, double, double, double, double, int);
-double CrankEquation(double, double, double, double, int);
+typedef struct {
+    double L;
+    double D;
+    double X0;
+    double Xe;
+    double T;
+    int nterms;
+} drydat;
+
+
+double CrankEquationFx(double, double, drydat);
+double CrankEquation(double, drydat);
 
 double Esurf(double, double);
 
