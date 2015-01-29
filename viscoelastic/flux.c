@@ -25,7 +25,8 @@ double SurfDisplace(double t, drydat cond)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
         //setvalV(str, i, MaxwellStrainPc(t, valV(x,i), cond));
-        setvalV(str, i, strainpc(t, valV(x,i), cond));
+        //setvalV(str, i, strainpc(t, valV(x,i), cond));
+        setvalV(str, i, ZhuMaxwellStrain(t, valV(x,i), cond));
 
     d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
@@ -146,7 +147,7 @@ int main(int argc, char *argv[])
 
     /* Calculate equilibrium moisture content and average diffusivity */
     d = CreateOswinData();
-    cond.Xe = OswinIsotherm(d, RH, cond.T);
+    cond.Xe = RH; //OswinIsotherm(d, RH, cond.T);
     cond.D = DiffCh10((cond.Xe+cond.X0)/2, cond.T);
     cond.L = L;
     cond.nterms = NTERMS;

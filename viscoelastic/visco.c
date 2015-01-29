@@ -32,7 +32,7 @@
 double strainpc(double t, double x, drydat d)
 {
     int i,
-        nt = 100; /* Number of time steps to use */
+        nt = 1000; /* Number of time steps to use */
     double Xdb, 
            Pc,
            e = 0,
@@ -59,7 +59,7 @@ double strainpc(double t, double x, drydat d)
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
-    return 0.06*e;
+    return e;
 }
 
 double MaxwellStrainPc(double t, double x, drydat d)
@@ -89,7 +89,41 @@ double MaxwellStrainPc(double t, double x, drydat d)
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
-    return e*.06;
+    return .06*e;
+}
+
+double ZhuMaxwellStrain(double t, double x, drydat d)
+{
+    int i,
+        nt = 1000; /* Number of time steps to use */
+    double Bc = 8.2e-14,
+           Xdb, 
+           Pc,
+           e = 0,
+           dt = t/nt; /* Size of each time step */
+    maxwell *m;
+
+    m = CreateMaxwellZhu();
+    for(i=0; i<nt; i++) {
+        /* Calculate moisture content using the Crank equation */
+        Xdb = CrankEquationFx(x, i*dt, d);
+        //Pc = pore_press(Xdb, T) - pore_press(.3, T);
+        /* Pore pressure */
+        Pc = pore_press(Xdb, d.T);
+        /* Use a modified integral formula to calculate strain. This has been
+         * integrated by parts to eliminate the numerical error associated with
+         * approximating the pressure time derivative. */
+        e += DMaxwellCreep(m, t-i*dt, d.T, Xdb) * Pc  * dt;
+    }
+
+    Xdb = CrankEquationFx(x, t, d);
+    Pc = pore_press(Xdb, d.T);
+    /* The other part of the integration formula */
+    e += MaxwellCreep(m, 0, d.T, Xdb)*Pc;
+
+    /* Multiply strain (or, more accurately, stress) by porosity to get
+     * effective stress (hopefully) */
+    return 10000*e*Bc;
 }
 
 double EqStrainPc(double t, double x, drydat d)
