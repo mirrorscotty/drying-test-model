@@ -44,7 +44,7 @@ double CreepZhu(double t, double T, double X, double P, int deriv)
     else
         J = MaxwellCreep(m, t, T, X);
     DestroyMaxwell(m);
-    return J*10000*Bc;
+    return J*1e0*Bc;
 }
 /**
  * Calculate the strain assuming that capillary pressure is the driving
@@ -64,13 +64,14 @@ double CreepZhu(double t, double T, double X, double P, int deriv)
  *
  * @returns Infintesimal strain [-]
  */
-double strainpc(double t, double x, drydat d,
+double strainpc(double x, double t, drydat d,
+                double (*F)(double, double, drydat),
                 double (*J)(double, double, double, double, int))
 {
     int i,
         nt = 1000; /* Number of time steps to use */
     double Xdb, 
-           Pc,
+           P,
            e = 0,
            dt = t/nt; /* Size of each time step */
 
@@ -79,17 +80,17 @@ double strainpc(double t, double x, drydat d,
         Xdb = CrankEquationFx(x, i*dt, d);
         //Pc = pore_press(Xdb, T) - pore_press(.3, T);
         /* Pore pressure */
-        Pc = pore_press(Xdb, d.T);
+        P = F(x, t, d);
         /* Use a modified integral formula to calculate strain. This has been
          * integrated by parts to eliminate the numerical error associated with
          * approximating the pressure time derivative. */
-        e += J(t-i*dt, d.T, Xdb, -1*Pc, 1) * Pc  * dt;
+        e += J(t-i*dt, d.T, Xdb, -1*P, 1) * P  * dt;
     }
 
     Xdb = CrankEquationFx(x, t, d);
-    Pc = pore_press(Xdb, d.T);
+    P = F(x, t, d);
     /* The other part of the integration formula */
-    e += J(0, d.T, Xdb, -1*Pc, 0)*Pc;
+    e += J(0, d.T, Xdb, -1*P, 0)*P;
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */

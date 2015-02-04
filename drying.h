@@ -23,6 +23,8 @@ double CrankEquationFx(double, double, drydat);
 double CrankEquation(double, drydat);
 
 double Esurf(double, double);
+double GradEsurf(double, double, drydat);
+double PoreP(double, double, drydat);
 
 #endif
 

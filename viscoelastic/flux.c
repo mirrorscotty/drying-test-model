@@ -24,9 +24,10 @@ double SurfDisplace(double t, drydat cond)
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, strainpc(t,
-                                 valV(x,i),
+        setvalV(str, i, strainpc(valV(x,i),
+                                 t,
                                  cond,
+                                 &GradEsurf,
                                  &CreepZhu));
 
     d = displacement(nx-1, str, cond.L);
