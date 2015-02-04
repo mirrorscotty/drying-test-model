@@ -15,22 +15,22 @@ material-data.a: matrix.a
 	$(MAKE) -C material-data material-data.a
 	cp material-data/material-data.a .
 
-visco.o: drying.h
+strain.o: drying.h
 flux.o:
 moisture.o: visco.h
 profile.o:
 
 crank.o: drying.h
-stress.o: drying.h
+force.o: drying.h
 elastic.o: drying.h
 
-visco-flux: flux.o visco.o stress.o moisture.o crank.o matrix.a material-data.a
+visco-flux: flux.o strain.o force.o moisture.o crank.o matrix.a material-data.a
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
 
-visco-profile: profile.o visco.o stress.o crank.o matrix.a material-data.a
+visco-profile: profile.o strain.o force.o crank.o matrix.a material-data.a
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
 
-elastic: elastic.o stress.o crank.o matrix.a material-data.a
+elastic: elastic.o force.o crank.o matrix.a material-data.a
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
 
 doc: Doxyfile

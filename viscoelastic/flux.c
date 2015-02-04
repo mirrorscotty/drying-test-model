@@ -24,9 +24,10 @@ double SurfDisplace(double t, drydat cond)
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        //setvalV(str, i, MaxwellStrainPc(t, valV(x,i), cond));
-        //setvalV(str, i, strainpc(t, valV(x,i), cond));
-        setvalV(str, i, ZhuMaxwellStrain(t, valV(x,i), cond));
+        setvalV(str, i, strainpc(t,
+                                 valV(x,i),
+                                 cond,
+                                 &CreepZhu));
 
     d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
@@ -36,7 +37,7 @@ double SurfDisplace(double t, drydat cond)
     return d;
 }
 
-double SurfDisplaceMax(double t, drydat cond )
+double SurfDisplaceMax(double t, drydat cond)
 {
     int nx = NX;
     double dx = cond.L/nx, d;
@@ -51,6 +52,30 @@ double SurfDisplaceMax(double t, drydat cond )
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
         setvalV(str, i, maxstrain(t, valV(x,i), cond));
+
+    d = displacement(nx-1, str, cond.L);
+    DestroyVector(x);
+    DestroyVector(Xdb);
+    DestroyVector(str);
+
+    return d;
+}
+
+double SurfDisplaceEta(double t, drydat cond)
+{
+    int nx = NX;
+    double dx = cond.L/nx, d;
+    int i;
+
+    vector *x, *Xdb, *str;
+    x = CreateVector(nx);
+    Xdb = CreateVector(nx);
+    str = CreateVector(nx);
+
+    for(i=0; i<nx; i++)
+        setvalV(x, i, dx*i);
+    for(i=0; i<nx; i++)
+        setvalV(str, i, etastrain(t, valV(x,i), cond, .3));
 
     d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
@@ -119,6 +144,7 @@ int main(int argc, char *argv[])
            *VV0Max,
            *VV0Eq,
            *MaxDisp,
+           *EtaDisp,
            *EqDisp,
            *Disp;
 
@@ -159,6 +185,7 @@ int main(int argc, char *argv[])
     Disp = CreateVector(nt);
     MaxDisp = CreateVector(nt);
     EqDisp = CreateVector(nt);
+    EtaDisp = CreateVector(nt);
     VV0 = CreateVector(nt);
     VV0Max = CreateVector(nt);
     VV0Eq = CreateVector(nt);
@@ -177,15 +204,16 @@ int main(int argc, char *argv[])
         setvalV(Disp, i, SurfDisplace(dt*i, cond));
         setvalV(MaxDisp, i, SurfDisplaceMax(dt*i, cond));
         setvalV(EqDisp, i, SurfDisplaceEq(dt*i, cond));
+        setvalV(EtaDisp, i, SurfDisplaceEta(dt*i, cond));
 
         setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
         setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
         setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);
     }
 
-    out = CatColVector(10, tv, Xdb, Disp, MaxDisp, EqDisp, Pc, Js, VV0, VV0Max, VV0Eq);
+    out = CatColVector(11, tv, Xdb, Disp, EtaDisp, MaxDisp, EqDisp, Pc, Js, VV0, VV0Max, VV0Eq);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
 
     return 0;
 }

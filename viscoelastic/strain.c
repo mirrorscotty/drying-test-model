@@ -11,6 +11,41 @@
  * profile. */
 #define NTERMS 100
 
+double CreepGina(double t, double T, double X, double P, int deriv)
+{
+    double J;
+    burgerse *b;
+    b = CreateBurgersE();
+    if(deriv)
+        J = DBurgersECreep(b, t, T, X, P);
+    else
+        J = BurgersECreep(b, t, T, X, P);
+    DestroyBurgersE(b);
+    return J;
+}
+
+double CreepLaura(double t, double T, double X, double P, int deriv)
+{
+    double J;
+    if(deriv)
+        J = DMaxwellCreepConverted(t, T, X);
+    else
+        J = MaxwellCreepConverted(t, T, X);
+    return J;
+}
+
+double CreepZhu(double t, double T, double X, double P, int deriv)
+{
+    double J, Bc = 8.2e-14;
+    maxwell *m;
+    m = CreateMaxwellZhu();
+    if(deriv)
+        J = DMaxwellCreep(m, t, T, X);
+    else
+        J = MaxwellCreep(m, t, T, X);
+    DestroyMaxwell(m);
+    return J*10000*Bc;
+}
 /**
  * Calculate the strain assuming that capillary pressure is the driving
  * force for shrinkage. Capillary pressure is determined from the Kelvin
@@ -29,7 +64,8 @@
  *
  * @returns Infintesimal strain [-]
  */
-double strainpc(double t, double x, drydat d)
+double strainpc(double t, double x, drydat d,
+                double (*J)(double, double, double, double, int))
 {
     int i,
         nt = 1000; /* Number of time steps to use */
@@ -37,9 +73,7 @@ double strainpc(double t, double x, drydat d)
            Pc,
            e = 0,
            dt = t/nt; /* Size of each time step */
-    burgerse *b;
 
-    b = CreateBurgersE();
     for(i=0; i<nt; i++) {
         /* Calculate moisture content using the Crank equation */
         Xdb = CrankEquationFx(x, i*dt, d);
@@ -49,83 +83,22 @@ double strainpc(double t, double x, drydat d)
         /* Use a modified integral formula to calculate strain. This has been
          * integrated by parts to eliminate the numerical error associated with
          * approximating the pressure time derivative. */
-        e += DBurgersECreep(b, t-i*dt, d.T, Xdb, -1*Pc) * Pc  * dt;
+        e += J(t-i*dt, d.T, Xdb, -1*Pc, 1) * Pc  * dt;
     }
 
     Xdb = CrankEquationFx(x, t, d);
     Pc = pore_press(Xdb, d.T);
     /* The other part of the integration formula */
-    e += BurgersECreep(b, 0, d.T, Xdb, -1*Pc)*Pc;
+    e += J(0, d.T, Xdb, -1*Pc, 0)*Pc;
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
     return e;
 }
 
-double MaxwellStrainPc(double t, double x, drydat d)
-{
-    int i,
-        nt = 1000; /* Number of time steps to use */
-    double Xdb, 
-           Pc,
-           e = 0,
-           dt = t/nt; /* Size of each time step */
-
-    for(i=0; i<nt; i++) {
-        /* Calculate moisture content using the Crank equation */
-        Xdb = CrankEquationFx(x, i*dt, d);
-        /* Pore pressure */
-        Pc = pore_press(Xdb, d.T);
-        /* Use a modified integral formula to calculate strain. This has been
-         * integrated by parts to eliminate the numerical error associated with
-         * approximating the pressure time derivative. */
-        e += DMaxwellCreepConverted(t-i*dt, d.T, Xdb) * Pc  * dt;
-    }
-
-    Xdb = CrankEquationFx(x, t, d);
-    Pc = pore_press(Xdb, d.T);
-    /* The other part of the integration formula */
-    e += MaxwellCreepConverted(0, d.T, Xdb)*Pc;
-
-    /* Multiply strain (or, more accurately, stress) by porosity to get
-     * effective stress (hopefully) */
-    return .06*e;
-}
-
-double ZhuMaxwellStrain(double t, double x, drydat d)
-{
-    int i,
-        nt = 1000; /* Number of time steps to use */
-    double Bc = 8.2e-14,
-           Xdb, 
-           Pc,
-           e = 0,
-           dt = t/nt; /* Size of each time step */
-    maxwell *m;
-
-    m = CreateMaxwellZhu();
-    for(i=0; i<nt; i++) {
-        /* Calculate moisture content using the Crank equation */
-        Xdb = CrankEquationFx(x, i*dt, d);
-        //Pc = pore_press(Xdb, T) - pore_press(.3, T);
-        /* Pore pressure */
-        Pc = pore_press(Xdb, d.T);
-        /* Use a modified integral formula to calculate strain. This has been
-         * integrated by parts to eliminate the numerical error associated with
-         * approximating the pressure time derivative. */
-        e += DMaxwellCreep(m, t-i*dt, d.T, Xdb) * Pc  * dt;
-    }
-
-    Xdb = CrankEquationFx(x, t, d);
-    Pc = pore_press(Xdb, d.T);
-    /* The other part of the integration formula */
-    e += MaxwellCreep(m, 0, d.T, Xdb)*Pc;
-
-    /* Multiply strain (or, more accurately, stress) by porosity to get
-     * effective stress (hopefully) */
-    return 10000*e*Bc;
-}
-
+/**
+ * Calculate the equilibrium strain using Laura's creep compliance data.
+ */
 double EqStrainPc(double t, double x, drydat d)
 {
     double Xdb, 
@@ -135,8 +108,6 @@ double EqStrainPc(double t, double x, drydat d)
 
     /* Calculate moisture content using the Crank equation */
     Xdb = CrankEquationFx(x, t, d);
-    //if(x>=9.4e-4)
-    //    printf("x = %g, t = %g, Xdb = %g\n", x, t, Xdb);
     /* Pore pressure */
     Pc = pore_press(Xdb, d.T); 
     Ea = 68.18*(1/(1+exp((Xdb-250.92*exp(-0.0091*d.T))/2.19))+0.078) * 1e6;
@@ -168,6 +139,12 @@ double displacement(int xi, vector* strain, double L)
     return u;
 }
 
+/**
+ * Calculate a vector of displacement values at each location.
+ * @param strain Vector of strain values across the thickness of the sample. [-]
+ * @param L Sample thickness [m]
+ * @returns Displacement [m]
+ */
 vector* displacementV(vector* strain, double L)
 {
     int i;
