@@ -3,7 +3,7 @@ CFLAGS=-Imatrix -Imaterial-data -I. -ggdb -Wall
 LDFLAGS=-lm
 VPATH=matrix material-data material-data/pasta viscoelastic
 
-all: visco-flux
+all: visco-flux visco-profile
 
 # Make stuff from other projects using their makefile
 matrix.a:

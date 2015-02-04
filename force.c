@@ -48,15 +48,15 @@ double GradEsurf(double x, double t, drydat cond)
     if(x-h < 0) {
         Xl = CrankEquationFx(x, t, cond);
         Xh = CrankEquationFx(x+h, t, cond);
-        gE = Esurf(Xh, cond.T) - Esurf(Xl, cond.T)/h;
+        gE = (Esurf(Xh, cond.T) - Esurf(Xl, cond.T))/h;
     } else if(x+h > cond.L) {
         Xl = CrankEquationFx(x-h, t, cond);
         Xh = CrankEquationFx(x, t, cond);
-        gE = Esurf(Xh, cond.T) - Esurf(Xl, cond.T)/h;
+        gE = (Esurf(Xh, cond.T) - Esurf(Xl, cond.T))/h;
     } else {
         Xl = CrankEquationFx(x-h, t, cond);
         Xh = CrankEquationFx(x+h, t, cond);
-        gE = Esurf(Xh, cond.T) - Esurf(Xl, cond.T)/(2*h);
+        gE = (Esurf(Xh, cond.T) - Esurf(Xl, cond.T))/(2*h);
     } 
 
     return gE;
