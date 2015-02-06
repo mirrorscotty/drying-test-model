@@ -28,7 +28,7 @@ double SurfDisplace(double t, drydat cond)
                                  t,
                                  cond,
                                  &GradEsurf,
-                                 &CreepZhu));
+                                 &CreepGina));
 
     d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
@@ -124,6 +124,47 @@ double SurfMoistureFlux(double t, drydat cond)
     return J;
 }
 
+double StressCummings(double t, drydat cond)
+{
+    int nslice = 10, i;
+    double avg = 0,
+           dx = cond.L/(nslice-1);
+
+    for(i=0; i<nslice; i++)
+        avg += VEStress(i*dx, t, cond, &etastrain, &RelaxCummings)/nslice;
+    return avg;
+}
+double StressLaura(double t, drydat cond)
+{
+    int nslice = 10, i;
+    double avg = 0,
+           dx = cond.L/(nslice-1);
+
+    for(i=0; i<nslice; i++)
+        avg += VEStress(i*dx, t, cond, &etastrain, &RelaxLaura)/nslice;
+    return avg;
+}
+double StressZhu(double t, drydat cond)
+{
+    int nslice = 10, i;
+    double avg = 0,
+           dx = cond.L/(nslice-1);
+
+    for(i=0; i<nslice; i++)
+        avg += VEStress(i*dx, t, cond, &etastrain, &RelaxZhu)/nslice;
+    return avg;
+}
+double StressEsurf(double t, drydat cond)
+{
+    int nslice = 10, i;
+    double avg = 0,
+           dx = cond.L/(nslice-1);
+
+    for(i=0; i<nslice; i++)
+        avg += GradEsurf(i*dx, t, cond)/nslice;
+    return avg;
+}
+
 int main(int argc, char *argv[])
 {
     double L = 1e-3, /* Length [m] */
@@ -133,12 +174,13 @@ int main(int argc, char *argv[])
            dt;
 
     drydat cond;
-    oswin *d; /* Isotherm data */
+    //oswin *d; /* Isotherm data */
 
     int i; /* Loop index */
     
     vector *Xdb, /* Slab moisture content */
            *Pc,
+           *PL, *PC, *PZ, *PE,
            *Js, /* Moisture flux at the surface */
            *tv, /* Time vector */
            *VV0,
@@ -173,7 +215,7 @@ int main(int argc, char *argv[])
     dt = t/nt;
 
     /* Calculate equilibrium moisture content and average diffusivity */
-    d = CreateOswinData();
+    //d = CreateOswinData();
     cond.Xe = RH; //OswinIsotherm(d, RH, cond.T);
     cond.D = DiffCh10((cond.Xe+cond.X0)/2, cond.T);
     cond.L = L;
@@ -182,6 +224,10 @@ int main(int argc, char *argv[])
     tv = CreateVector(nt);
     Xdb = CreateVector(nt);
     Pc = CreateVector(nt);
+    PL = CreateVector(nt);
+    PC = CreateVector(nt);
+    PZ = CreateVector(nt);
+    PE = CreateVector(nt);
     Js = CreateVector(nt);
     Disp = CreateVector(nt);
     MaxDisp = CreateVector(nt);
@@ -199,6 +245,10 @@ int main(int argc, char *argv[])
         //setvalV(Xdb, i, EqStrainPc(i*dt, .9, 0, D, X0, Xe, L, T));
 
         setvalV(Pc, i, pore_press(valV(Xdb, i), cond.T));
+        setvalV(PL, i, StressLaura(i*dt, cond));
+        setvalV(PC, i, StressCummings(i*dt, cond));
+        setvalV(PZ, i, StressZhu(i*dt, cond));
+        setvalV(PE, i, StressEsurf(i*dt, cond));
 
         setvalV(Js, i, SurfMoistureFlux(i*dt, cond));
 
@@ -212,9 +262,9 @@ int main(int argc, char *argv[])
         setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);
     }
 
-    out = CatColVector(11, tv, Xdb, Disp, EtaDisp, MaxDisp, EqDisp, Pc, Js, VV0, VV0Max, VV0Eq);
+    out = CatColVector(15, tv, Xdb, Disp, EtaDisp, MaxDisp, EqDisp, Pc, PL, PC, PZ, PE, Js, VV0, VV0Max, VV0Eq);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],PL,PC,PZ,PE,Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
 
     return 0;
 }

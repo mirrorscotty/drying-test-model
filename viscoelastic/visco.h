@@ -21,5 +21,12 @@ double CreepGina(double, double, double, double, int);
 double CreepLaura(double, double, double, double, int);
 double CreepZhu(double, double, double, double, int);
 
+double RelaxCummings(double, double, double, int);
+double RelaxLaura(double, double, double, int);
+double RelaxZhu(double, double, double, int);
+double VEStress(double, double, drydat,
+        double (*E)(double, double, drydat, double),
+        double (G)(double, double, double, int));
+
 #endif
 
