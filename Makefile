@@ -18,7 +18,7 @@ material-data.a: matrix.a
 strain.o: drying.h
 stress.o: drying.h
 flux.o:
-moisture.o: visco.h
+moisture.o: drying.h
 profile.o:
 
 crank.o: drying.h
@@ -28,7 +28,7 @@ elastic.o: drying.h
 visco-flux: flux.o strain.o stress.o force.o moisture.o crank.o matrix.a material-data.a
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
 
-visco-profile: profile.o strain.o force.o crank.o matrix.a material-data.a
+visco-profile: profile.o strain.o force.o moisture.o crank.o matrix.a material-data.a
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
 
 elastic: elastic.o force.o crank.o matrix.a material-data.a

@@ -70,24 +70,25 @@ double VEStress(double x, double t, drydat d,
                 double (*E)(double, double, drydat, double),
                 double (*G)(double, double, double, int))
 {
-    int i,
-        nt = 100; /* Number of time steps to use */
-    double Xdb, 
-           s = 0,
-           e,
-           eta = .2,
+    int i, /* Loop index */
+        nt = 1000; /* Number of time steps to use */
+    double Xdb, /* Moisture content [kg/kg db] */
+           s = 0, /* Set the stress to zero initially */
+           e,  /* Strain */
            dt = t/nt; /* Size of each time step */
+
     for(i=0; i<nt; i++) {
         /* Calculate moisture content using the Crank equation */
         Xdb = CrankEquationFx(x, i*dt, d);
-        e = E(i*dt, x, d, .2);
+        e = E(i*dt, x, d, ETA);
 
         s += G(t-i*dt, d.T, Xdb, 1) * e * dt;
     }
 
-    Xdb = CrankEquationFx(x, t, d);
-    e = E(t, x, d, eta);
-    s += G(0, d.T, Xdb, 0)*e;
+    Xdb = CrankEquationFx(x, 0, d);
+    s += -1*G(t, d.T, Xdb, 0)*E(0, x, d, ETA);
+    Xdb = CrankEquationFx(x, 0, d);
+    s += G(0, d.T, Xdb, 0)*E(t, x, d, ETA);
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */

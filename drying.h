@@ -5,6 +5,7 @@
 #define CONSTXe 18.261700
 #define CONSTnterms 50 
 #define BETA0 1e-4
+#define ETA .28
 
 #define SLABWIDTH 6e-3
 #define SLABLENGTH 8e-3
@@ -25,6 +26,12 @@ double CrankEquation(double, drydat);
 double Esurf(double, double);
 double GradEsurf(double, double, drydat);
 double PoreP(double, double, drydat);
+double EffPoreP(double, double, drydat);
+
+double maxstrain(double, double, drydat);
+double etastrain(double, double, drydat, double);
+double solidfrac(double, double, drydat, double);
+
 
 #endif
 

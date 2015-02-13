@@ -34,6 +34,16 @@ double CreepLaura(double t, double T, double X, double P, int deriv)
     return J;
 }
 
+double CreepLaura2(double t, double T, double X, double P, int deriv)
+{
+    double J;
+    if(deriv)
+        J = DMaxwellCreepLaura(t, T, X);
+    else
+        J = MaxwellCreepLaura(t, T, X);
+    return J;
+}
+
 double CreepZhu(double t, double T, double X, double P, int deriv)
 {
     double J, Bc = 8.2e-14;
@@ -78,8 +88,6 @@ double strainpc(double x, double t, drydat d,
     for(i=0; i<nt; i++) {
         /* Calculate moisture content using the Crank equation */
         Xdb = CrankEquationFx(x, i*dt, d);
-        //Pc = pore_press(Xdb, T) - pore_press(.3, T);
-        /* Pore pressure */
         P = F(x, t, d);
         /* Use a modified integral formula to calculate strain. This has been
          * integrated by parts to eliminate the numerical error associated with
@@ -87,14 +95,13 @@ double strainpc(double x, double t, drydat d,
         e += J(t-i*dt, d.T, Xdb, -1*P, 1) * P  * dt;
     }
 
-    Xdb = CrankEquationFx(x, t, d);
-    P = F(x, t, d);
     /* The other part of the integration formula */
-    e += J(0, d.T, Xdb, -1*P, 0)*P;
+    Xdb = CrankEquationFx(x, t, d);
+    e += -1*J(t, d.T, Xdb, -1*P, t)*F(x, 0, d);
+    Xdb = CrankEquationFx(x, 0, d);
+    e += J(0, d.T, Xdb, -1*P, 0)*F(x, t, d);
 
-    /* Multiply strain (or, more accurately, stress) by porosity to get
-     * effective stress (hopefully) */
-    return e;
+    return e*6*(.5-.35);
 }
 
 /**
@@ -116,7 +123,7 @@ double EqStrainPc(double t, double x, drydat d)
 
     /* Multiply strain (or, more accurately, stress) by porosity to get
      * effective stress (hopefully) */
-    return e*.06;
+    return e;
 }
 
 /**

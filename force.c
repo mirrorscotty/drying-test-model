@@ -43,7 +43,7 @@ double Esurf(double Xdb, double T)
 
 double GradEsurf(double x, double t, drydat cond)
 {
-    double h = 1e-6, El, Eh, gE, Xl, Xh;
+    double h = 1e-6, gE, Xl, Xh;
 
     if(x-h < 0) {
         Xl = CrankEquationFx(x, t, cond);
@@ -67,5 +67,12 @@ double PoreP(double x, double t, drydat cond)
     double Xdb;
     Xdb = CrankEquationFx(x, t, cond);
     return pore_press(Xdb, cond.T);
+}
+
+double EffPoreP(double x, double t, drydat cond)
+{
+    double Xdb, eta = ETA;
+    Xdb = CrankEquationFx(x, t, cond);
+    return (1-solidfrac(t, x, cond, eta)) * (pore_press(Xdb, cond.T)-pore_press(cond.X0, cond.T));
 }
 

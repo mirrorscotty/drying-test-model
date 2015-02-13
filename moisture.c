@@ -75,3 +75,23 @@ double etastrain(double t, double x, drydat d, double eta)
     return ((1-eta)*(X0-Xdb))/((rhow/rho0)*(1+X0));
 }
 
+double solidfrac(double t, double x, drydat d, double eta)
+{
+    double rhos, rhoapp, rhoapp0,
+           X = CrankEquationFx(x, t, d),
+           X0 = d.X0,
+           chit = etastrain(t, x, d, eta);
+    choi_okos *co, *co0;
+
+    co = CreateChoiOkos(PASTACOMP);
+    rhos = rho(co, d.T);
+    co0 = AddDryBasis(co, X0);
+    rhoapp0 = rho(co0, d.T);
+    DestroyChoiOkos(co);
+    DestroyChoiOkos(co0);
+
+    rhoapp = rhoapp0*(1+X)/((1+X0)*(1-chit));
+
+    return rhoapp/(1+X) * 1/rhos;
+}
+

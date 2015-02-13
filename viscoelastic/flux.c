@@ -9,7 +9,9 @@
 #define NX 20
 #define NTERMS 100
 
-double SurfDisplace(double t, drydat cond)
+double SurfDisplace(double t, drydat cond,
+                    double (*F)(double, double, drydat),
+                    double (*J)(double, double, double, double, int))
 {
     int nx = NX;
     double dx = cond.L/nx,
@@ -27,15 +29,15 @@ double SurfDisplace(double t, drydat cond)
         setvalV(str, i, strainpc(valV(x,i),
                                  t,
                                  cond,
-                                 &GradEsurf,
-                                 &CreepGina));
+                                 F,
+                                 J));
 
     d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
     DestroyVector(Xdb);
     DestroyVector(str);
 
-    return d;
+    return -1*d;
 }
 
 double SurfDisplaceMax(double t, drydat cond)
@@ -76,7 +78,7 @@ double SurfDisplaceEta(double t, drydat cond)
     for(i=0; i<nx; i++)
         setvalV(x, i, dx*i);
     for(i=0; i<nx; i++)
-        setvalV(str, i, etastrain(t, valV(x,i), cond, .3));
+        setvalV(str, i, etastrain(t, valV(x,i), cond, ETA));
 
     d = displacement(nx-1, str, cond.L);
     DestroyVector(x);
@@ -124,9 +126,16 @@ double SurfMoistureFlux(double t, drydat cond)
     return J;
 }
 
+double straintest(double a, double b, drydat c, double d)
+{
+    if(a<10000)
+        return 0;
+    else
+        return .2;
+}
 double StressCummings(double t, drydat cond)
 {
-    int nslice = 10, i;
+    int nslice = 11, i;
     double avg = 0,
            dx = cond.L/(nslice-1);
 
@@ -136,7 +145,7 @@ double StressCummings(double t, drydat cond)
 }
 double StressLaura(double t, drydat cond)
 {
-    int nslice = 10, i;
+    int nslice = 11, i;
     double avg = 0,
            dx = cond.L/(nslice-1);
 
@@ -146,7 +155,7 @@ double StressLaura(double t, drydat cond)
 }
 double StressZhu(double t, drydat cond)
 {
-    int nslice = 10, i;
+    int nslice = 11, i;
     double avg = 0,
            dx = cond.L/(nslice-1);
 
@@ -156,12 +165,22 @@ double StressZhu(double t, drydat cond)
 }
 double StressEsurf(double t, drydat cond)
 {
-    int nslice = 10, i;
+    int nslice = 11, i;
     double avg = 0,
            dx = cond.L/(nslice-1);
 
     for(i=0; i<nslice; i++)
         avg += GradEsurf(i*dx, t, cond)/nslice;
+    return avg;
+}
+double StressPoreP(double t, drydat cond)
+{
+    int nslice = 11, i;
+    double avg = 0,
+           dx = cond.L/(nslice-1);
+
+    for(i=0; i<nslice; i++)
+        avg += -1*EffPoreP(i*dx, t, cond)/nslice;
     return avg;
 }
 
@@ -174,7 +193,7 @@ int main(int argc, char *argv[])
            dt;
 
     drydat cond;
-    //oswin *d; /* Isotherm data */
+    oswin *d; /* Isotherm data */
 
     int i; /* Loop index */
     
@@ -189,9 +208,11 @@ int main(int argc, char *argv[])
            *MaxDisp,
            *EtaDisp,
            *EqDisp,
-           *Disp;
+           *DPPG, *DEPPG, *DGEG,
+           *DPPL, *DEPPL, *DGEL;
 
     matrix *out;
+    gordontaylor *gt;
 
     /* Print out a usage statement if needed */
     if(argc != 6) {
@@ -212,11 +233,16 @@ int main(int argc, char *argv[])
     t = atof(argv[4]);
     nt = atof(argv[5]);
 
+    /* Print out the moisture content where the glass transition occurs. */
+    gt = GTSemolina();
+    printf("Tg = %g at Xdb = %g\n", cond.T, GordonTaylorInv(gt, cond.T));
+    DestroyGT(gt);
+
     dt = t/nt;
 
     /* Calculate equilibrium moisture content and average diffusivity */
-    //d = CreateOswinData();
-    cond.Xe = RH; //OswinIsotherm(d, RH, cond.T);
+    d = CreateOswinData();
+    cond.Xe = OswinIsotherm(d, RH, cond.T);
     cond.D = DiffCh10((cond.Xe+cond.X0)/2, cond.T);
     cond.L = L;
     cond.nterms = NTERMS;
@@ -229,7 +255,12 @@ int main(int argc, char *argv[])
     PZ = CreateVector(nt);
     PE = CreateVector(nt);
     Js = CreateVector(nt);
-    Disp = CreateVector(nt);
+    DPPG = CreateVector(nt);
+    DEPPG = CreateVector(nt);
+    DGEG = CreateVector(nt);
+    DPPL = CreateVector(nt);
+    DEPPL = CreateVector(nt);
+    DGEL = CreateVector(nt);
     MaxDisp = CreateVector(nt);
     EqDisp = CreateVector(nt);
     EtaDisp = CreateVector(nt);
@@ -244,27 +275,32 @@ int main(int argc, char *argv[])
         setvalV(Xdb, i, CrankEquation(i*dt, cond));
         //setvalV(Xdb, i, EqStrainPc(i*dt, .9, 0, D, X0, Xe, L, T));
 
-        setvalV(Pc, i, pore_press(valV(Xdb, i), cond.T));
+        setvalV(Pc, i, StressPoreP(i*dt, cond));
         setvalV(PL, i, StressLaura(i*dt, cond));
-        setvalV(PC, i, StressCummings(i*dt, cond));
+        setvalV(PC, i, StressCummings(i*dt, cond)); /*
         setvalV(PZ, i, StressZhu(i*dt, cond));
         setvalV(PE, i, StressEsurf(i*dt, cond));
 
         setvalV(Js, i, SurfMoistureFlux(i*dt, cond));
 
-        setvalV(Disp, i, SurfDisplace(dt*i, cond));
+        setvalV(DPPG, i, SurfDisplace(dt*i, cond, &PoreP, &CreepGina));
+        setvalV(DEPPG, i, SurfDisplace(dt*i, cond, &EffPoreP, &CreepGina));
+        setvalV(DGEG, i, SurfDisplace(dt*i, cond, &GradEsurf, &CreepGina));
+        setvalV(DPPL, i, SurfDisplace(dt*i, cond, &PoreP, &CreepLaura2));
+        setvalV(DEPPL, i, SurfDisplace(dt*i, cond, &EffPoreP, &CreepLaura2));
+        setvalV(DGEL, i, SurfDisplace(dt*i, cond, &GradEsurf, &CreepLaura2));
         setvalV(MaxDisp, i, SurfDisplaceMax(dt*i, cond));
-        setvalV(EqDisp, i, SurfDisplaceEq(dt*i, cond));
+        setvalV(EqDisp, i, SurfDisplaceEq(dt*i, cond)); */
         setvalV(EtaDisp, i, SurfDisplaceEta(dt*i, cond));
 
-        setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
-        setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
-        setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);
+        //setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
+        //setvalV(VV0Max, i, (1e-3+valV(MaxDisp, i))/1e-3);
+        //setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);
     }
 
-    out = CatColVector(15, tv, Xdb, Disp, EtaDisp, MaxDisp, EqDisp, Pc, PL, PC, PZ, PE, Js, VV0, VV0Max, VV0Eq);
+    out = CatColVector(20, tv, Xdb, DPPG, DEPPG, DGEG, DPPL, DEPPL, DGEL, EtaDisp, MaxDisp, EqDisp, Pc, PL, PC, PZ, PE, Js, VV0, VV0Max, VV0Eq);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Displacement [m],EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],PL,PC,PZ,PE,Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Disp Pc G [m],Disp EPc G,Disp Eb G,Disp Pc L, Disp EPc L,Disp Eb L,EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],PL,PC,PZ,PE,Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
 
     return 0;
 }
