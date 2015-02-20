@@ -23,6 +23,7 @@ double CreepZhu(double, double, double, double, int);
 
 double RelaxCummings(double, double, double, int);
 double RelaxLaura(double, double, double, int);
+double RelaxGina(double, double, double, int);
 double RelaxZhu(double, double, double, int);
 double VEStress(double, double, drydat,
         double (*E)(double, double, drydat, double),

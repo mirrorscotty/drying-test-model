@@ -27,12 +27,12 @@ double RelaxCummings(double t, double T, double X, int deriv)
 
 double RelaxLaura(double t, double T, double X, int deriv)
 {
-    double J;
+    double G;
     if(deriv)
-        J = DMaxwellRelaxLaura(t, T, X);
+        G = DMaxwellRelaxLaura(t, T, X);
     else
-        J = MaxwellRelaxLaura(t, T, X);
-    return J;
+        G = MaxwellRelaxLaura(t, T, X);
+    return G;
 }
 
 double RelaxZhu(double t, double T, double X, int deriv)
@@ -46,6 +46,19 @@ double RelaxZhu(double t, double T, double X, int deriv)
         K = MaxwellRelax(m, t, T, X);
     DestroyMaxwell(m);
     return K;
+}
+
+double RelaxGina(double t, double T, double X, int deriv)
+{
+    double G;
+    double P = 100000;
+    if(t==0)
+        t=0.01;
+    if(deriv)
+        G = DLGinaRelax(t, T, X, P);
+    else
+        G = LGinaRelax(t, T, X, P);
+    return G;
 }
 
 /**

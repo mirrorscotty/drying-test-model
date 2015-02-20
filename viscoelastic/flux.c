@@ -126,43 +126,19 @@ double SurfMoistureFlux(double t, drydat cond)
     return J;
 }
 
-double straintest(double a, double b, drydat c, double d)
-{
-    if(a<10000)
-        return 0;
-    else
-        return .2;
-}
-double StressCummings(double t, drydat cond)
+double AvgVEStress(double t, drydat cond,
+                   double (*E)(double, double, drydat, double),
+                   double (*G)(double, double, double, int))
 {
     int nslice = 11, i;
     double avg = 0,
            dx = cond.L/(nslice-1);
 
     for(i=0; i<nslice; i++)
-        avg += VEStress(i*dx, t, cond, &etastrain, &RelaxCummings)/nslice;
+        avg += VEStress(i*dx, t, cond, E, G)/nslice;
     return avg;
 }
-double StressLaura(double t, drydat cond)
-{
-    int nslice = 11, i;
-    double avg = 0,
-           dx = cond.L/(nslice-1);
 
-    for(i=0; i<nslice; i++)
-        avg += VEStress(i*dx, t, cond, &etastrain, &RelaxLaura)/nslice;
-    return avg;
-}
-double StressZhu(double t, drydat cond)
-{
-    int nslice = 11, i;
-    double avg = 0,
-           dx = cond.L/(nslice-1);
-
-    for(i=0; i<nslice; i++)
-        avg += VEStress(i*dx, t, cond, &etastrain, &RelaxZhu)/nslice;
-    return avg;
-}
 double StressEsurf(double t, drydat cond)
 {
     int nslice = 11, i;
@@ -173,6 +149,7 @@ double StressEsurf(double t, drydat cond)
         avg += GradEsurf(i*dx, t, cond)/nslice;
     return avg;
 }
+
 double StressPoreP(double t, drydat cond)
 {
     int nslice = 11, i;
@@ -199,7 +176,7 @@ int main(int argc, char *argv[])
     
     vector *Xdb, /* Slab moisture content */
            *Pc,
-           *PL, *PC, *PZ, *PE,
+           *PL, *PC, *PZ, *PE, *PG,
            *Js, /* Moisture flux at the surface */
            *tv, /* Time vector */
            *VV0,
@@ -253,6 +230,7 @@ int main(int argc, char *argv[])
     PL = CreateVector(nt);
     PC = CreateVector(nt);
     PZ = CreateVector(nt);
+    PG = CreateVector(nt);
     PE = CreateVector(nt);
     Js = CreateVector(nt);
     DPPG = CreateVector(nt);
@@ -276,10 +254,11 @@ int main(int argc, char *argv[])
         //setvalV(Xdb, i, EqStrainPc(i*dt, .9, 0, D, X0, Xe, L, T));
 
         setvalV(Pc, i, StressPoreP(i*dt, cond));
-        setvalV(PL, i, StressLaura(i*dt, cond));
-        setvalV(PC, i, StressCummings(i*dt, cond)); /*
-        setvalV(PZ, i, StressZhu(i*dt, cond));
-        setvalV(PE, i, StressEsurf(i*dt, cond));
+        setvalV(PL, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxLaura));
+        setvalV(PC, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxCummings)); 
+        setvalV(PG, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxGina));
+        setvalV(PZ, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxZhu));
+        setvalV(PE, i, StressEsurf(i*dt, cond)); /*
 
         setvalV(Js, i, SurfMoistureFlux(i*dt, cond));
 
