@@ -37,6 +37,8 @@ double Esurf(double Xdb, double T)
 
     /* Calculate solid density for unit conversion */
     rhos = rho(co, T);
+    DestroyChoiOkos(co);
+    DestroyOswinData(d);
     /* Ensure the units are consitent and return the result. */
     return E*Xdb*rhos/Mw;
 }

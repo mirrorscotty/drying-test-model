@@ -24,6 +24,25 @@ double CreepGina(double t, double T, double X, double P, int deriv)
     return J;
 }
 
+double CreepGinaBulk(double t, double T, double X, double P, int deriv)
+{
+    double nu = .45, /* Poisson ratio */
+           J, /* Creep compliance */
+           B; /* Bulk compliance */
+    burgerse *b;
+    b = CreateBurgersE();
+    if(deriv)
+        J = DBurgersECreep(b, t, T, X, P);
+    else
+        J = BurgersECreep(b, t, T, X, P);
+    DestroyBurgersE(b);
+
+    B = 6*(.5-nu)*J;
+    return B;
+}
+
+
+
 double CreepLaura(double t, double T, double X, double P, int deriv)
 {
     double J;
