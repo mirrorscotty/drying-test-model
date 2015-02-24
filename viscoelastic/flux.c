@@ -185,8 +185,8 @@ int main(int argc, char *argv[])
            *MaxDisp,
            *EtaDisp,
            *EqDisp,
-           *DPPG, *DEPPG, *DGEG,
-           *DPPL, *DEPPL, *DGEL;
+           *DPPG, *DEPPG, *DEPPC, *DGEG,
+           *DPPL, *DEPPL, *DGEL, *DEPPLL;
 
     matrix *out;
     gordontaylor *gt;
@@ -235,9 +235,11 @@ int main(int argc, char *argv[])
     Js = CreateVector(nt);
     DPPG = CreateVector(nt);
     DEPPG = CreateVector(nt);
+    DEPPC = CreateVector(nt);
     DGEG = CreateVector(nt);
     DPPL = CreateVector(nt);
     DEPPL = CreateVector(nt);
+    DEPPLL = CreateVector(nt);
     DGEL = CreateVector(nt);
     MaxDisp = CreateVector(nt);
     EqDisp = CreateVector(nt);
@@ -258,18 +260,20 @@ int main(int argc, char *argv[])
         setvalV(PC, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxCummings)); 
         setvalV(PG, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxGina));
         setvalV(PZ, i, AvgVEStress(i*dt, cond, &etastrain, &RelaxZhu));
-        setvalV(PE, i, StressEsurf(i*dt, cond)); /*
+        setvalV(PE, i, StressEsurf(i*dt, cond));
 
         setvalV(Js, i, SurfMoistureFlux(i*dt, cond));
 
         setvalV(DPPG, i, SurfDisplace(dt*i, cond, &PoreP, &CreepGina));
         setvalV(DEPPG, i, SurfDisplace(dt*i, cond, &EffPoreP, &CreepGina));
+        setvalV(DEPPC, i, SurfDisplace(dt*i, cond, &EffPoreP, &CreepCummings));
         setvalV(DGEG, i, SurfDisplace(dt*i, cond, &GradEsurf, &CreepGina));
         setvalV(DPPL, i, SurfDisplace(dt*i, cond, &PoreP, &CreepLaura2));
         setvalV(DEPPL, i, SurfDisplace(dt*i, cond, &EffPoreP, &CreepLaura2));
+        setvalV(DEPPL, i, SurfDisplace(dt*i, cond, &EffPoreP, &CreepLauraL));
         setvalV(DGEL, i, SurfDisplace(dt*i, cond, &GradEsurf, &CreepLaura2));
         setvalV(MaxDisp, i, SurfDisplaceMax(dt*i, cond));
-        setvalV(EqDisp, i, SurfDisplaceEq(dt*i, cond)); */
+        setvalV(EqDisp, i, SurfDisplaceEq(dt*i, cond));
         setvalV(EtaDisp, i, SurfDisplaceEta(dt*i, cond));
 
         //setvalV(VV0, i, (1e-3+valV(Disp, i))/1e-3);
@@ -277,9 +281,35 @@ int main(int argc, char *argv[])
         //setvalV(VV0Eq, i, (1e-3+valV(EqDisp, i))/1e-3);
     }
 
-    out = CatColVector(20, tv, Xdb, DPPG, DEPPG, DGEG, DPPL, DEPPL, DGEL, EtaDisp, MaxDisp, EqDisp, Pc, PL, PC, PZ, PE, Js, VV0, VV0Max, VV0Eq);
+    out = CatColVector(23, tv, Xdb, DPPG, DEPPG, DEPPC, DGEG, DPPL, DEPPL, DEPPLL, DGEL, EtaDisp, MaxDisp, EqDisp, Pc, PL, PG, PC, PZ, PE, Js, VV0, VV0Max, VV0Eq);
 
-    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Disp Pc G [m],Disp EPc G,Disp Eb G,Disp Pc L, Disp EPc L,Disp Eb L,EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],PL,PC,PZ,PE,Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
+    mtxprntfilehdr(out, "out.csv", "Time [s],Moisture Content [kg/kg db],Surface Disp Pc G [m],Disp EPc G,Disp EPc C,Disp Eb G,Disp Pc L, Disp EPc L,Disp EPc LL,Disp Eb L,EtaDisp [m],Max Surf Disp [m],Eq Disp [m],Pressure [Pa],PL,PG,PC,PZ,PE,Surface Water Flux [kg/m^2],V/V0,V/V0 Max,V/V0 Eq\n");
+
+
+    DestroyVector(tv);
+    DestroyVector(Xdb);
+    DestroyVector(DPPG);
+    DestroyVector(DEPPG);
+    DestroyVector(DGEG);
+    DestroyVector(DPPL);
+    DestroyVector(DEPPL);
+    DestroyVector(DGEL);
+    DestroyVector(EtaDisp);
+    DestroyVector(MaxDisp);
+    DestroyVector(EqDisp);
+    DestroyVector(Pc);
+    DestroyVector(PL);
+    DestroyVector(PC);
+    DestroyVector(PG);
+    DestroyVector(PZ);
+    DestroyVector(PE);
+    DestroyVector(Js);
+    DestroyVector(VV0);
+    DestroyVector(VV0Max);
+    DestroyVector(VV0Eq);
+
+    DestroyMatrix(out);
+    DestroyOswinData(d);
 
     return 0;
 }

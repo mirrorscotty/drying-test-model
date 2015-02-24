@@ -10,6 +10,9 @@
 #define SLABWIDTH 6e-3
 #define SLABLENGTH 8e-3
 
+#define NTERMS 100
+#define NTSTEPS 100
+
 typedef struct {
     double L;
     double D;

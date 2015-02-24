@@ -19,7 +19,9 @@ vector* displacementV(vector*, double);
 double CreepGina(double, double, double, double, int);
 double CreepLaura(double, double, double, double, int);
 double CreepLaura2(double, double, double, double, int);
+double CreepLauraL(double, double, double, double, int);
 double CreepZhu(double, double, double, double, int);
+double CreepCummings(double, double, double, double, int);
 
 double RelaxCummings(double, double, double, int);
 double RelaxLaura(double, double, double, int);

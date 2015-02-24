@@ -8,10 +8,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* Number of terms to use for the Crank equation when solving for moisture
- * profile. */
-#define NTERMS 100
-
 double RelaxCummings(double t, double T, double X, int deriv)
 {
     double G;
@@ -84,7 +80,7 @@ double VEStress(double x, double t, drydat d,
                 double (*G)(double, double, double, int))
 {
     int i, /* Loop index */
-        nt = 1000; /* Number of time steps to use */
+        nt = NTSTEPS; /* Number of time steps to use */
     double Xdb, /* Moisture content [kg/kg db] */
            s = 0, /* Set the stress to zero initially */
            e,  /* Strain */

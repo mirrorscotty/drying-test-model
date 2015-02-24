@@ -7,10 +7,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* Number of terms to use for the Crank equation when solving for moisture
- * profile. */
-#define NTERMS 100
-
 double CreepGina(double t, double T, double X, double P, int deriv)
 {
     double J;
@@ -40,8 +36,6 @@ double CreepGinaBulk(double t, double T, double X, double P, int deriv)
     B = 6*(.5-nu)*J;
     return B;
 }
-
-
 
 double CreepLaura(double t, double T, double X, double P, int deriv)
 {
@@ -75,6 +69,27 @@ double CreepZhu(double t, double T, double X, double P, int deriv)
     DestroyMaxwell(m);
     return J*1e0*Bc;
 }
+
+double CreepCummings(double t, double T, double X, double P, int deriv)
+{
+    double J;
+    if(deriv)
+        J = DLCummingsCreep(t, T, X, P);
+    else
+        J = LCummingsCreep(t, T, X, P);
+    return J;
+}
+
+double CreepLauraL(double t, double T, double X, double P, int deriv)
+{
+    double J;
+    if(deriv)
+        J = DLLauraCreep(t, T, X, P);
+    else
+        J = LLauraCreep(t, T, X, P);
+    return J;
+}
+
 /**
  * Calculate the strain assuming that capillary pressure is the driving
  * force for shrinkage. Capillary pressure is determined from the Kelvin
@@ -98,7 +113,7 @@ double strainpc(double x, double t, drydat d,
                 double (*J)(double, double, double, double, int))
 {
     int i,
-        nt = 1000; /* Number of time steps to use */
+        nt = NTSTEPS; /* Number of time steps to use */
     double Xdb, 
            P,
            e = 0,
@@ -118,7 +133,7 @@ double strainpc(double x, double t, drydat d,
     Xdb = CrankEquationFx(x, t, d);
     e += -1*J(t, d.T, Xdb, -1*P, t)*F(x, 0, d);
     Xdb = CrankEquationFx(x, 0, d);
-    e += J(0, d.T, Xdb, -1*P, 0)*F(x, t, d);
+    e += J(.01, d.T, Xdb, -1*P, 0)*F(x, t, d);
 
     return e*6*(.5-.35);
 }
