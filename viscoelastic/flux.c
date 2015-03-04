@@ -221,6 +221,7 @@ int main(int argc, char *argv[])
     d = CreateOswinData();
     cond.Xe = OswinIsotherm(d, RH, cond.T);
     cond.D = DiffCh10((cond.Xe+cond.X0)/2, cond.T);
+    printf("D = %g [m^2/s]\n", cond.D);
     cond.L = L;
     cond.nterms = NTERMS;
 

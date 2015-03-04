@@ -131,9 +131,11 @@ double strainpc(double x, double t, drydat d,
 
     /* The other part of the integration formula */
     Xdb = CrankEquationFx(x, t, d);
-    e += -1*J(t, d.T, Xdb, -1*P, t)*F(x, 0, d);
+    P = F(x, t, d);
+    e += -1*J(t, d.T, Xdb, -1*P, 0)*P;
     Xdb = CrankEquationFx(x, 0, d);
-    e += J(.01, d.T, Xdb, -1*P, 0)*F(x, t, d);
+    P = F(x, .01, d);
+    e += J(.01, d.T, Xdb, -1*P, 0)*P;
 
     return e*6*(.5-.35);
 }

@@ -9,7 +9,6 @@
 
 /* Number of terms to use for the Crank equation when solving for moisture
  * profile. */
-#define NTERMS 1000
 
 /**
  * Calculate the maximum possible strain assuming that none of the water leaving
