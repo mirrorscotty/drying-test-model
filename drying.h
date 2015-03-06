@@ -5,7 +5,10 @@
 #define CONSTXe 18.261700
 #define CONSTnterms 50 
 #define BETA0 1e-4
-#define ETA .28
+#define ETA .28 // 40 C
+//#define ETA .15 // 80 C
+
+#define POISSON .45
 
 #define SLABWIDTH 6e-3
 #define SLABLENGTH 8e-3

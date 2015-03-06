@@ -220,6 +220,7 @@ int main(int argc, char *argv[])
     /* Calculate equilibrium moisture content and average diffusivity */
     d = CreateOswinData();
     cond.Xe = OswinIsotherm(d, RH, cond.T);
+    printf("Xe = %g [-]\n", cond.Xe);
     cond.D = DiffCh10((cond.Xe+cond.X0)/2, cond.T);
     printf("D = %g [m^2/s]\n", cond.D);
     cond.L = L;

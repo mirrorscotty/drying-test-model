@@ -68,7 +68,7 @@ double PoreP(double x, double t, drydat cond)
 {
     double Xdb;
     Xdb = CrankEquationFx(x, t, cond);
-    return pore_press(Xdb, cond.T);
+    return pore_press(Xdb, cond.T)-pore_press(cond.X0, cond.T);
 }
 
 double EffPoreP(double x, double t, drydat cond)

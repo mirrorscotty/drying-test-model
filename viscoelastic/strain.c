@@ -137,7 +137,7 @@ double strainpc(double x, double t, drydat d,
     P = F(x, .01, d);
     e += J(.01, d.T, Xdb, -1*P, 0)*P;
 
-    return e*6*(.5-.35);
+    return e*6*(.5-POISSON);
 }
 
 /**
